@@ -19,7 +19,7 @@ Free, no-backend filing agent. One static page (`index.html`), no build step, no
 ## Commands
 | Command | Fields |
 |---|---|
-| `/leave` | leave type, actual date, actual start/end time, reason (optional) |
+| `/leave` | leave type, actual date (optional to-date for a range, weekends can be skipped), actual start/end time, reason (optional) |
 | `/overtime` | shift date, shift start/end, actual date, actual start/end, reason (mandatory) |
 | `/my`, `/balance`, `/help` | list my filings, show balances, help |
 

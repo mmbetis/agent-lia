@@ -52,14 +52,19 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mins=t=>{const[a,b]=t.split(':');return +a*60+ +b},dur=(s,e)=>{s=mins(s);e=mins(e);return e>s?e-s:e+1440-s};
 function otHours(f){const a=dur(f.aStart,f.aEnd);let ov=0;if(f.shiftDate===f.aDate){const s=mins(f.sStart),se=s+dur(f.sStart,f.sEnd),as=mins(f.aStart),ae=as+a;ov=Math.max(0,Math.min(se,ae)-Math.max(s,as))}return Math.round((a-ov)/60*100)/100}
+const pad=n=>String(n).padStart(2,'0'),fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function expand(v){const a=v.date,b=v.date2||v.date;if(!a)return[];const out=[];let d=new Date(a+'T00:00:00'),e=new Date(b+'T00:00:00');if(e<d)return[];const multi=a!==b;for(;d<=e;d.setDate(d.getDate()+1)){const w=d.getDay();if(multi&&v.wk==='1'&&(w===0||w===6))continue;out.push(fmt(d))}return out}
+const dts=f=>f.dates||[f.f.date];
+const lines=r=>r.flatMap(f=>f.kind==='Leave'?dts(f).map(d=>({f,d})):[{f,d:f.f.aDate}]);
+const lineDetail=l=>l.f.kind==='Leave'?`${esc(l.f.f.type)}, ${l.f.f.start}-${l.f.f.end} (${leaveDays(l.f.f)} day)`:detail(l.f);
 function leaveDays(f){return Math.round(Math.min(dur(f.start,f.end),480)/480*100)/100}
 const log=(x,m)=>x.log.push(new Date().toLocaleString()+' - '+m);
 const visible=()=>{const u=me();return S.filings.filter(f=>u.role==='HR'||f.user===u.id||(u.role==='Manager'&&f.mgr===u.id))};
 const used=(uid,t)=>S.filings.filter(f=>f.kind==='Leave'&&f.user===uid&&f.status==='Approved'&&f.f.type===t).reduce((a,f)=>a+f.days,0);
-const detail=f=>f.kind==='Leave'?`${esc(f.f.type)} on ${f.f.date}, ${f.f.start}-${f.f.end} (${f.days} day)`:`Shift ${f.f.shiftDate} ${f.f.sStart}-${f.f.sEnd}; actual ${f.f.aDate} ${f.f.aStart}-${f.f.aEnd}`+(f.status==='Approved'?` (${f.hours} OT hrs)`:'');
+const detail=f=>f.kind==='Leave'?`${esc(f.f.type)} ${f.f.date}${f.f.date2&&f.f.date2!==f.f.date?' to '+f.f.date2:''}, ${f.f.start}-${f.f.end} each day (${dts(f).length} date${dts(f).length>1?'s':''}, ${f.days} day${f.days===1?'':'s'} total)`:`Shift ${f.f.shiftDate} ${f.f.sStart}-${f.f.sEnd}; actual ${f.f.aDate} ${f.f.aStart}-${f.f.aEnd}`+(f.status==='Approved'?` (${f.hours} OT hrs)`:'');
 const tag=s=>`<span class="tag ${s}">${s}</span>`;
 function fieldsLeave(v={}){return `<div class="grid"><div class="full"><label>Leave type<select name="type">${LTYPES.map(t=>`<option ${v.type===t?'selected':''}>${t}</option>`).join('')}</select></label></div>
-<div class="full"><label>Actual date<input type="date" name="date" value="${v.date||''}"></label></div>
+<div><label>Actual date (from)<input type="date" name="date" value="${v.date||''}"></label></div><div><label>To date (optional, for a date range)<input type="date" name="date2" value="${v.date2||''}"></label></div><div class="full"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="wk" style="width:auto" ${v.wk!=='0'?'checked':''}> Skip Saturdays and Sundays in a date range</label></div>
 <div><label>Actual start time<input type="time" name="start" value="${v.start||'09:00'}"></label></div><div><label>Actual end time<input type="time" name="end" value="${v.end||'18:00'}"></label></div>
 <div class="full"><label>Reason (optional)<textarea name="reason" rows="2">${esc(v.reason)}</textarea></label></div></div>`}
 function fieldsOT(v={}){return `<div class="grid"><div class="full"><label>Shift date<input type="date" name="shiftDate" value="${v.shiftDate||''}"></label></div>
@@ -70,16 +75,16 @@ function fieldsOT(v={}){return `<div class="grid"><div class="full"><label>Shift
 function formMsg(m,i){const L=m.kind==='Leave';return `<div class="m" data-i="${i}"><b>${m.edit?'Correct and resubmit':'New'} ${L?'leave':'overtime'} filing</b>
 ${L?fieldsLeave(m.vals):fieldsOT(m.vals)}<div class="err"></div><div class="row" style="margin:10px 0 0"><button data-act="submit" data-i="${i}">${m.edit?'Resubmit':'Submit filing'}</button><button class="g" data-act="dismiss" data-i="${i}">Cancel</button></div></div>`}
 function validate(kind,v){const e=[];
-if(kind==='Leave'){if(!v.date)e.push('Actual date is required.');if(!v.start||!v.end)e.push('Start and end time are required.');else if(v.start===v.end)e.push('Start and end time must differ.')}
+if(kind==='Leave'){if(!v.date)e.push('Actual date is required.');else if(v.date2&&v.date2<v.date)e.push('To date cannot be before the from date.');else if(!expand(v).length)e.push('No working dates in that range.');if(!v.start||!v.end)e.push('Start and end time are required.');else if(v.start===v.end)e.push('Start and end time must differ.')}
 else{if(!v.shiftDate||!v.aDate)e.push('Shift date and actual date are required.');if(!v.sStart||!v.sEnd||!v.aStart||!v.aEnd)e.push('All start and end times are required.');if(!(v.reason||'').trim())e.push('Reason is mandatory for overtime.')}
 return e}
 function submit(i){const m=chat[i],el=document.querySelector(`.m[data-i="${i}"]`),v={};
-el.querySelectorAll('[name]').forEach(x=>v[x.name]=x.value);const er=validate(m.kind,v);
-if(!er.length&&m.kind==='Leave'){const d=leaveDays(v),left=ALLOW[v.type]-used(S.me,v.type);if(d>left+(m.edit?0:0))er.push(`Not enough ${v.type} leave left (${left} day).`)}
+el.querySelectorAll('[name]').forEach(x=>v[x.name]=x.type==='checkbox'?(x.checked?'1':'0'):x.value);const er=validate(m.kind,v);
+if(!er.length&&m.kind==='Leave'){const d=Math.round(leaveDays(v)*expand(v).length*100)/100,left=ALLOW[v.type]-used(S.me,v.type);if(d>left+(m.edit?0:0))er.push(`Not enough ${v.type} leave left (${left} day).`)}
 if(er.length){el.querySelector('.err').innerHTML=er.map(esc).join('<br>');return}
 const u=me();
-if(m.edit){const f=S.filings.find(x=>x.id===m.edit);f.f=v;f.status='Pending';f.comment='';f.days=m.kind==='Leave'?leaveDays(v):0;log(f,'Corrected and resubmitted to '+U(f.mgr).name);chat.push({who:'bot',html:`Resubmitted <b>#${f.id}</b>. Routed to ${esc(U(f.mgr).name)}.`})}
-else{const f={id:S.n++,kind:m.kind,user:u.id,mgr:u.mgr,status:'Pending',f:v,days:m.kind==='Leave'?leaveDays(v):0,hours:0,comment:'',log:[]};log(f,'Submitted by '+u.name+', routed to '+(u.mgr?U(u.mgr).name:'n/a'));S.filings.push(f);
+if(m.edit){const f=S.filings.find(x=>x.id===m.edit);f.f=v;f.status='Pending';f.comment='';f.dates=m.kind==='Leave'?expand(v):null;f.days=m.kind==='Leave'?Math.round(leaveDays(v)*f.dates.length*100)/100:0;log(f,'Corrected and resubmitted to '+U(f.mgr).name);chat.push({who:'bot',html:`Resubmitted <b>#${f.id}</b>. Routed to ${esc(U(f.mgr).name)}.`})}
+else{const f={id:S.n++,kind:m.kind,user:u.id,mgr:u.mgr,status:'Pending',f:v,dates:m.kind==='Leave'?expand(v):null,days:m.kind==='Leave'?Math.round(leaveDays(v)*expand(v).length*100)/100:0,hours:0,comment:'',log:[]};log(f,'Submitted by '+u.name+', routed to '+(u.mgr?U(u.mgr).name:'n/a'));S.filings.push(f);
 chat.push({who:'bot',html:`Filed <b>#${f.id}</b> (${m.kind}). Waiting for approval by ${esc(U(u.mgr).name)}. Switch to <i>Approvals</i> as the manager to decide.`})}
 chat.splice(i,1);save();render()}
 function decide(id,ok){const f=S.filings.find(x=>x.id==id),c=$('#c'+id).value.trim();
@@ -106,16 +111,16 @@ return l.map(f=>`<div class="card"><div class="row"><b>#${f.id} ${f.kind==='OT'?
 function vCal(){const y=cal.getFullYear(),m=cal.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
 const ev=visible().filter(f=>f.status==='Approved');let h=`<div class="row"><button class="g" data-act="prev">Prev</button><b>${cal.toLocaleString('en',{month:'long',year:'numeric'})}</b><button class="g" data-act="next">Next</button></div><div class="tw"><div class="cal">`+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="h">${d}</div>`).join('')+'<div style="border:0;background:none"></div>'.repeat(first);
 for(let d=1;d<=n;d++){const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-h+=`<div><b>${d}</b>`+ev.filter(f=>(f.kind==='Leave'?f.f.date:f.f.aDate)===ds).map(f=>`<div class="ev ${f.kind==='OT'?'ot':''}">${esc(U(f.user).name.split(' ')[0])}: ${f.kind==='Leave'?esc(f.f.type):f.hours+'h OT'}</div>`).join('')+'</div>'}
+h+=`<div><b>${d}</b>`+ev.filter(f=>(f.kind==='Leave'?dts(f).includes(ds):f.f.aDate===ds)).map(f=>`<div class="ev ${f.kind==='OT'?'ot':''}">${esc(U(f.user).name.split(' ')[0])}: ${f.kind==='Leave'?esc(f.f.type):f.hours+'h OT'}</div>`).join('')+'</div>'}
 return h+'</div></div>'}
 function rows(){return visible().filter(f=>(!flt.type||f.kind===flt.type)&&(!flt.status||f.status===flt.status))}
 function vRep(){const r=rows(),emp=USERS.filter(u=>u.role==='Employee'&&visible().some(f=>f.user===u.id)||u.id===S.me&&u.role==='Employee');
 return `<div class="row"><select id="ft" style="width:auto"><option value="">All types</option><option value="Leave" ${flt.type==='Leave'?'selected':''}>Leave</option><option value="OT" ${flt.type==='OT'?'selected':''}>Overtime</option></select>
 <select id="fs" style="width:auto"><option value="">All statuses</option>${['Pending','Approved','Rejected','Cancelled'].map(s=>`<option ${flt.status===s?'selected':''}>${s}</option>`).join('')}</select><button data-act="csv">Export CSV</button></div>
-<div class="tw"><table><tr><th>#</th><th>Employee</th><th>Type</th><th>Details</th><th>Status</th><th>Approver</th></tr>${r.map(f=>`<tr><td>${f.id}</td><td>${esc(U(f.user).name)}</td><td>${f.kind}</td><td>${detail(f)}</td><td>${tag(f.status)}</td><td>${esc(U(f.mgr).name)}</td></tr>`).join('')||'<tr><td colspan="6">No filings.</td></tr>'}</table></div>
+<div class="tw"><table><tr><th>#</th><th>Employee</th><th>Type</th><th>Date</th><th>Details</th><th>Status</th><th>Approver</th></tr>${lines(r).map(l=>{const f=l.f;return `<tr><td>${f.id}</td><td>${esc(U(f.user).name)}</td><td>${f.kind}</td><td>${l.d}</td><td>${lineDetail(l)}</td><td>${tag(f.status)}</td><td>${esc(U(f.mgr).name)}</td></tr>`}).join('')||'<tr><td colspan="7">No filings.</td></tr>'}</table></div>
 <h3>Balances and OT totals</h3><div class="tw"><table><tr><th>Employee</th>${LTYPES.map(t=>`<th>${t} left</th>`).join('')}<th>Approved OT hrs</th></tr>${emp.map(u=>`<tr><td>${esc(u.name)}</td>${LTYPES.map(t=>`<td>${(ALLOW[t]-used(u.id,t)).toFixed(2)}</td>`).join('')}<td>${S.filings.filter(f=>f.user===u.id&&f.kind==='OT'&&f.status==='Approved').reduce((a,f)=>a+f.hours,0).toFixed(2)}</td></tr>`).join('')}</table></div>`}
 function csv(){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',H=['ID','Employee','Type','Status','Approver','LeaveType','Date','Start','End','ShiftDate','ShiftStart','ShiftEnd','ActualDate','ActualStart','ActualEnd','LeaveDays','OTHours','Reason','ManagerComment'];
-const L=rows().map(f=>[f.id,U(f.user).name,f.kind,f.status,U(f.mgr).name,f.f.type,f.f.date,f.f.start,f.f.end,f.f.shiftDate,f.f.sStart,f.f.sEnd,f.f.aDate,f.f.aStart,f.f.aEnd,f.days,f.hours,f.f.reason,f.comment].map(q).join(','));
+const L=lines(rows()).map(l=>{const f=l.f;return [f.id,U(f.user).name,f.kind,f.status,U(f.mgr).name,f.f.type,f.kind==='Leave'?l.d:'',f.f.start,f.f.end,f.f.shiftDate,f.f.sStart,f.f.sEnd,f.f.aDate,f.f.aStart,f.f.aEnd,f.kind==='Leave'?leaveDays(f.f):'',f.hours,f.f.reason,f.comment].map(q).join(',')});
 const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([[H.join(',')].concat(L).join('\n')],{type:'text/csv'}));a.download='leave-ot-filings.csv';a.click()}
 function render(){const u=me(),pend=S.filings.filter(f=>f.mgr===S.me&&f.status==='Pending').length;
 $('#who').innerHTML=USERS.map(x=>`<option value="${x.id}" ${x.id===S.me?'selected':''}>${x.name} (${x.role})</option>`).join('');
