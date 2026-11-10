@@ -2,43 +2,49 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Leave &amp; Overtime Filing Agent</title>
 <style>
-:root{--bg:#f2f4f1;--card:#fff;--ink:#1c2a25;--mut:#62706a;--line:#d8ded9;--acc:#0f5c4d;--accfg:#fff;--warn:#a86a0a;--bad:#b3372f;--ok:#1f7a45}
-@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#141a18;--card:#1e2623;--ink:#e6ece8;--mut:#98a69f;--line:#33403b;--acc:#4fc4a6;--accfg:#08231c;--warn:#e0a548;--bad:#ef8a80;--ok:#6fd59a}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
-header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
-h1{font-size:18px;margin:0}select,input,textarea,button{font:inherit;color:inherit}
-select,input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
-button{background:var(--acc);color:var(--accfg);border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font-weight:600}
-button.g{background:transparent;color:var(--ink);border:1px solid var(--line)}button.d{background:var(--bad);color:#fff}
+:root{--bg:#f5f5f5;--card:#fff;--ink:#242424;--mut:#616161;--line:#e0e0e0;--acc:#5b5fc7;--accfg:#fff;--bar:#464eb8;--me:#e8ebfa;--warn:#a86a0a;--bad:#c4314b;--ok:#107c10}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#1f1f1f;--card:#292929;--ink:#f5f5f5;--mut:#adadad;--line:#3d3d3d;--acc:#7f85f5;--accfg:#10102a;--bar:#2b2b40;--me:#3b3c66;--warn:#e0a548;--bad:#ff99a4;--ok:#6bb700}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI","Segoe UI Web",system-ui,-apple-system,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--bar);color:#fff}
+h1{font-size:15px;font-weight:600;margin:0;display:flex;align-items:center;gap:10px}
+h1:before{content:"L";display:inline-grid;place-items:center;width:28px;height:28px;border-radius:6px;background:#fff;color:#464eb8;font-weight:700}
+header label{font-size:13px}header select{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35)}header option{color:#242424}
+select,input,textarea,button{font:inherit;color:inherit}
+select,input,textarea{background:var(--card);border:1px solid var(--line);border-bottom:2px solid var(--line);border-radius:4px;padding:6px 8px;width:100%}
+input:focus,textarea:focus,select:focus{border-bottom-color:var(--acc);outline:0}
+button{background:var(--acc);color:var(--accfg);border:1px solid transparent;border-radius:4px;padding:6px 14px;cursor:pointer;font-weight:600}
+button:hover{filter:brightness(.93)}button.g{background:var(--card);color:var(--ink);border-color:var(--line)}button.d{background:var(--bad);color:#fff}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
-nav{display:flex;gap:4px;padding:10px 20px 0;overflow-x:auto}nav button{background:transparent;color:var(--mut);border-radius:6px 6px 0 0;border-bottom:2px solid transparent}
-nav button.on{color:var(--ink);border-color:var(--acc)}
-main{max-width:980px;margin:0 auto;padding:16px 20px 60px}
+nav{display:flex;gap:2px;padding:0 16px;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--line)}
+nav button{background:transparent;color:var(--mut);border-radius:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:400}
+nav button:hover{background:var(--bg);filter:none}nav button.on{color:var(--acc);font-weight:600;border-color:var(--acc)}
+main{max-width:980px;margin:0 auto;padding:16px 16px 60px}
 .chat{display:flex;flex-direction:column;gap:10px;min-height:340px}
-.m{max-width:640px;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
-.m.me{align-self:flex-end;background:var(--acc);color:var(--accfg);border-color:var(--acc)}
-.cmd{display:flex;gap:8px;margin-top:14px}.hint{color:var(--mut);font-size:13px;margin-top:6px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid label{font-size:13px;color:var(--mut)}.full{grid-column:1/-1}
+.m{max-width:640px;padding:10px 14px;border-radius:4px;background:var(--card);border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.m.me{align-self:flex-end;background:var(--me);border-color:transparent;color:var(--ink)}
+.m.bot:before{content:"Filing agent";display:block;font-size:12px;color:var(--mut);margin-bottom:2px}
+.cmd{display:flex;gap:8px;margin-top:14px;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:4px}.cmd input{border:0}.hint{color:var(--mut);font-size:12px;margin-top:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid label{font-size:12px;color:var(--mut)}.full{grid-column:1/-1}
 .err{color:var(--bad);font-size:13px}
-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:14px}
-th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600}
-.tw{overflow-x:auto}.tag{padding:2px 8px;border-radius:99px;border:1px solid currentColor;font-size:12px;white-space:nowrap}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600;background:var(--bg)}
+.tw{overflow-x:auto}.tag{padding:1px 8px;border-radius:99px;border:1px solid currentColor;font-size:12px;white-space:nowrap}
 .Pending{color:var(--warn)}.Approved{color:var(--ok)}.Rejected{color:var(--bad)}.Cancelled{color:var(--mut)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.row>*{width:auto}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;min-width:640px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;min-width:640px}
 .cal div{background:var(--card);border:1px solid var(--line);min-height:84px;padding:4px;font-size:12px}
 .cal .h{min-height:0;color:var(--mut);font-weight:600}.cal b{display:block;color:var(--mut)}
-.ev{border-left:3px solid var(--acc);padding-left:4px;margin-top:2px;background:var(--bg)}.ev.ot{border-color:var(--warn)}
+.ev{border-left:3px solid var(--acc);padding-left:4px;margin-top:2px;background:var(--me)}.ev.ot{border-color:var(--warn);background:var(--bg)}
 small{color:var(--mut)}@media(max-width:560px){.grid{grid-template-columns:1fr}}
 </style></head><body>
 <header><h1>Leave &amp; Overtime Filing Agent</h1>
 <label>Acting as <select id="who" style="width:auto"></select></label></header>
 <nav id="nav"></nav><main id="main"></main>
 <script>
-const USERS=[{id:'ana',name:'Ana Reyes',role:'Employee',mgr:'ben'},{id:'carl',name:'Carl Santos',role:'Employee',mgr:'ben'},{id:'ben',name:'Ben Cruz',role:'Manager',mgr:null},{id:'hazel',name:'Hazel Lim',role:'HR',mgr:null}];
-const ALLOW={Vacation:15,Sick:10,Emergency:5},LTYPES=Object.keys(ALLOW),KEY='leave_ot_agent_v1';
-let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{filings:[],n:1,me:'ana'};
+const USERS=[{id:'emp1',name:'Kwesi Amante',role:'Employee',mgr:'mgr1'},{id:'emp2',name:'Jan Derek Buquid',role:'Employee',mgr:'mgr2'},{id:'mgr1',name:'Marie-Cris Betis',role:'Manager',mgr:null},{id:'mgr2',name:'Hartell Torres',role:'Manager',mgr:null},{id:'hr1',name:'Margarita De la Torre',role:'HR',mgr:null}];
+const ALLOW={Vacation:15,Sick:10,Emergency:5},LTYPES=Object.keys(ALLOW),KEY='leave_ot_agent_v2';
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{filings:[],n:1,me:'emp1'};
 let chat=[{who:'bot',html:'Hi! I can file leave and overtime. Type <b>/leave</b> or <b>/overtime</b>. Other commands: <b>/my</b> (my filings), <b>/balance</b>, <b>/help</b>.'}];
 let tab='chat',cal=new Date(),flt={type:'',status:''};
 const $=s=>document.querySelector(s),U=id=>USERS.find(u=>u.id===id),me=()=>U(S.me);
@@ -93,7 +99,7 @@ function vMine(){const l=S.filings.filter(f=>f.user===S.me);if(!l.length)return 
 return l.slice().reverse().map(f=>`<div class="card"><div class="row"><b>#${f.id} ${f.kind==='OT'?'Overtime':'Leave'}</b>${tag(f.status)}<small>Approver: ${esc(U(f.mgr).name)}</small></div>${detail(f)}<br><small>Reason: ${esc(f.f.reason||'-')}</small>${f.comment?`<br><small>Manager comment: ${esc(f.comment)}</small>`:''}
 ${f.status==='Rejected'?`<div class="row" style="margin-top:10px"><button data-act="edit" data-id="${f.id}">Correct and resubmit</button><button class="g" data-act="cancel" data-id="${f.id}">Cancel filing</button></div>`:''}
 <details><summary><small>History</small></summary><small>${f.log.map(esc).join('<br>')}</small></details></div>`).join('')}
-function vApprove(){if(me().role!=='Manager')return '<p>Only managers approve filings. Switch to Ben Cruz to try it.</p>';
+function vApprove(){if(me().role!=='Manager')return '<p>Only managers approve filings. Switch to an approver (Marie-Cris Betis or Hartell Torres) to try it.</p>';
 const l=S.filings.filter(f=>f.mgr===S.me&&f.status==='Pending');if(!l.length)return '<p>No filings waiting for you.</p>';
 return l.map(f=>`<div class="card"><div class="row"><b>#${f.id} ${f.kind==='OT'?'Overtime':'Leave'}</b><small>from ${esc(U(f.user).name)}</small></div>${detail(f)}<br><small>Reason: ${esc(f.f.reason||'-')}</small>
 <div class="row" style="margin-top:10px"><input id="c${f.id}" placeholder="Comment (required if rejecting)" style="flex:1;min-width:200px"><button data-act="ok" data-id="${f.id}">Approve</button><button class="d" data-act="no" data-id="${f.id}">Reject</button></div></div>`).join('')}

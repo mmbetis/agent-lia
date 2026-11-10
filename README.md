@@ -24,7 +24,7 @@ Free, no-backend filing agent. One static page (`index.html`), no build step, no
 | `/my`, `/balance`, `/help` | list my filings, show balances, help |
 
 ## Roles (demo)
-Ana and Carl (Employee) report to Ben (Manager); Hazel is HR (view/export all). Use the "Acting as" dropdown.
+Kwesi Amante (Employee) reports to approver Marie-Cris Betis; Jan Derek Buquid (Employee) reports to approver Hartell Torres; Margarita De la Torre is HR (view/export all). Use the "Acting as" dropdown.
 Employees see their own filings, managers see their team, HR sees everything.
 
 ## Notes
