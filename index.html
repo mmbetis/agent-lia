@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Leave &amp; Overtime Filing Agent</title>
+<title>Leave Intelligent Assistant (LIA)</title>
 <style>
 :root{--bg:#f5f5f5;--card:#fff;--ink:#242424;--mut:#616161;--line:#e0e0e0;--acc:#5b5fc7;--accfg:#fff;--bar:#464eb8;--me:#e8ebfa;--warn:#a86a0a;--bad:#c4314b;--ok:#107c10}
 @media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#1f1f1f;--card:#292929;--ink:#f5f5f5;--mut:#adadad;--line:#3d3d3d;--acc:#7f85f5;--accfg:#10102a;--bar:#2b2b40;--me:#3b3c66;--warn:#e0a548;--bad:#ff99a4;--ok:#6bb700}}
@@ -22,7 +22,7 @@ main{max-width:980px;margin:0 auto;padding:16px 16px 60px}
 .chat{display:flex;flex-direction:column;gap:10px;min-height:340px}
 .m{max-width:640px;padding:10px 14px;border-radius:4px;background:var(--card);border:1px solid var(--line);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .m.me{align-self:flex-end;background:var(--me);border-color:transparent;color:var(--ink)}
-.m.bot:before{content:"Filing agent";display:block;font-size:12px;color:var(--mut);margin-bottom:2px}
+.m.bot:before{content:"LIA";display:block;font-size:12px;color:var(--mut);margin-bottom:2px}
 .cmd{display:flex;gap:8px;margin-top:14px;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:4px}.cmd input{border:0}.hint{color:var(--mut);font-size:12px;margin-top:6px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid label{font-size:12px;color:var(--mut)}.full{grid-column:1/-1}
 .err{color:var(--bad);font-size:13px}
@@ -38,7 +38,7 @@ th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;verti
 .ev{border-left:3px solid var(--acc);padding-left:4px;margin-top:2px;background:var(--me)}.ev.ot{border-color:var(--warn);background:var(--bg)}
 small{color:var(--mut)}@media(max-width:560px){.grid{grid-template-columns:1fr}}
 </style></head><body>
-<header><h1>Leave &amp; Overtime Filing Agent</h1>
+<header><h1>Leave Intelligent Assistant (LIA)</h1>
 <label>Acting as <select id="who" style="width:auto"></select></label></header>
 <nav id="nav"></nav><main id="main"></main>
 <script>

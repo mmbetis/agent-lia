@@ -1,4 +1,4 @@
-# Leave & Overtime Filing Agent
+# Leave Intelligent Assistant (LIA)
 
 Free, no-backend filing agent. One static page (`index.html`), no build step, no paid services.
 
