@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Leave &amp; Overtime Filing Agent</title>
+<style>
+:root{--bg:#f2f4f1;--card:#fff;--ink:#1c2a25;--mut:#62706a;--line:#d8ded9;--acc:#0f5c4d;--accfg:#fff;--warn:#a86a0a;--bad:#b3372f;--ok:#1f7a45}
+@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#141a18;--card:#1e2623;--ink:#e6ece8;--mut:#98a69f;--line:#33403b;--acc:#4fc4a6;--accfg:#08231c;--warn:#e0a548;--bad:#ef8a80;--ok:#6fd59a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--card)}
+h1{font-size:18px;margin:0}select,input,textarea,button{font:inherit;color:inherit}
+select,input,textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+button{background:var(--acc);color:var(--accfg);border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font-weight:600}
+button.g{background:transparent;color:var(--ink);border:1px solid var(--line)}button.d{background:var(--bad);color:#fff}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+nav{display:flex;gap:4px;padding:10px 20px 0;overflow-x:auto}nav button{background:transparent;color:var(--mut);border-radius:6px 6px 0 0;border-bottom:2px solid transparent}
+nav button.on{color:var(--ink);border-color:var(--acc)}
+main{max-width:980px;margin:0 auto;padding:16px 20px 60px}
+.chat{display:flex;flex-direction:column;gap:10px;min-height:340px}
+.m{max-width:640px;padding:10px 14px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
+.m.me{align-self:flex-end;background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.cmd{display:flex;gap:8px;margin-top:14px}.hint{color:var(--mut);font-size:13px;margin-top:6px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid label{font-size:13px;color:var(--mut)}.full{grid-column:1/-1}
+.err{color:var(--bad);font-size:13px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--mut);font-weight:600}
+.tw{overflow-x:auto}.tag{padding:2px 8px;border-radius:99px;border:1px solid currentColor;font-size:12px;white-space:nowrap}
+.Pending{color:var(--warn)}.Approved{color:var(--ok)}.Rejected{color:var(--bad)}.Cancelled{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}.row>*{width:auto}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;min-width:640px}
+.cal div{background:var(--card);border:1px solid var(--line);min-height:84px;padding:4px;font-size:12px}
+.cal .h{min-height:0;color:var(--mut);font-weight:600}.cal b{display:block;color:var(--mut)}
+.ev{border-left:3px solid var(--acc);padding-left:4px;margin-top:2px;background:var(--bg)}.ev.ot{border-color:var(--warn)}
+small{color:var(--mut)}@media(max-width:560px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>Leave &amp; Overtime Filing Agent</h1>
+<label>Acting as <select id="who" style="width:auto"></select></label></header>
+<nav id="nav"></nav><main id="main"></main>
+<script>
+const USERS=[{id:'ana',name:'Ana Reyes',role:'Employee',mgr:'ben'},{id:'carl',name:'Carl Santos',role:'Employee',mgr:'ben'},{id:'ben',name:'Ben Cruz',role:'Manager',mgr:null},{id:'hazel',name:'Hazel Lim',role:'HR',mgr:null}];
+const ALLOW={Vacation:15,Sick:10,Emergency:5},LTYPES=Object.keys(ALLOW),KEY='leave_ot_agent_v1';
+let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{filings:[],n:1,me:'ana'};
+let chat=[{who:'bot',html:'Hi! I can file leave and overtime. Type <b>/leave</b> or <b>/overtime</b>. Other commands: <b>/my</b> (my filings), <b>/balance</b>, <b>/help</b>.'}];
+let tab='chat',cal=new Date(),flt={type:'',status:''};
+const $=s=>document.querySelector(s),U=id=>USERS.find(u=>u.id===id),me=()=>U(S.me);
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mins=t=>{const[a,b]=t.split(':');return +a*60+ +b},dur=(s,e)=>{s=mins(s);e=mins(e);return e>s?e-s:e+1440-s};
+function otHours(f){const a=dur(f.aStart,f.aEnd);let ov=0;if(f.shiftDate===f.aDate){const s=mins(f.sStart),se=s+dur(f.sStart,f.sEnd),as=mins(f.aStart),ae=as+a;ov=Math.max(0,Math.min(se,ae)-Math.max(s,as))}return Math.round((a-ov)/60*100)/100}
+function leaveDays(f){return Math.round(Math.min(dur(f.start,f.end),480)/480*100)/100}
+const log=(x,m)=>x.log.push(new Date().toLocaleString()+' - '+m);
+const visible=()=>{const u=me();return S.filings.filter(f=>u.role==='HR'||f.user===u.id||(u.role==='Manager'&&f.mgr===u.id))};
+const used=(uid,t)=>S.filings.filter(f=>f.kind==='Leave'&&f.user===uid&&f.status==='Approved'&&f.f.type===t).reduce((a,f)=>a+f.days,0);
+const detail=f=>f.kind==='Leave'?`${esc(f.f.type)} on ${f.f.date}, ${f.f.start}-${f.f.end} (${f.days} day)`:`Shift ${f.f.shiftDate} ${f.f.sStart}-${f.f.sEnd}; actual ${f.f.aDate} ${f.f.aStart}-${f.f.aEnd}`+(f.status==='Approved'?` (${f.hours} OT hrs)`:'');
+const tag=s=>`<span class="tag ${s}">${s}</span>`;
+function fieldsLeave(v={}){return `<div class="grid"><div class="full"><label>Leave type<select name="type">${LTYPES.map(t=>`<option ${v.type===t?'selected':''}>${t}</option>`).join('')}</select></label></div>
+<div class="full"><label>Actual date<input type="date" name="date" value="${v.date||''}"></label></div>
+<div><label>Actual start time<input type="time" name="start" value="${v.start||'09:00'}"></label></div><div><label>Actual end time<input type="time" name="end" value="${v.end||'18:00'}"></label></div>
+<div class="full"><label>Reason (optional)<textarea name="reason" rows="2">${esc(v.reason)}</textarea></label></div></div>`}
+function fieldsOT(v={}){return `<div class="grid"><div class="full"><label>Shift date<input type="date" name="shiftDate" value="${v.shiftDate||''}"></label></div>
+<div><label>Shift start time<input type="time" name="sStart" value="${v.sStart||'09:00'}"></label></div><div><label>Shift end time<input type="time" name="sEnd" value="${v.sEnd||'18:00'}"></label></div>
+<div class="full"><label>Actual date<input type="date" name="aDate" value="${v.aDate||''}"></label></div>
+<div><label>Actual start time<input type="time" name="aStart" value="${v.aStart||'09:00'}"></label></div><div><label>Actual end time<input type="time" name="aEnd" value="${v.aEnd||'20:00'}"></label></div>
+<div class="full"><label>Reason (required)<textarea name="reason" rows="2">${esc(v.reason)}</textarea></label></div></div>`}
+function formMsg(m,i){const L=m.kind==='Leave';return `<div class="m" data-i="${i}"><b>${m.edit?'Correct and resubmit':'New'} ${L?'leave':'overtime'} filing</b>
+${L?fieldsLeave(m.vals):fieldsOT(m.vals)}<div class="err"></div><div class="row" style="margin:10px 0 0"><button data-act="submit" data-i="${i}">${m.edit?'Resubmit':'Submit filing'}</button><button class="g" data-act="dismiss" data-i="${i}">Cancel</button></div></div>`}
+function validate(kind,v){const e=[];
+if(kind==='Leave'){if(!v.date)e.push('Actual date is required.');if(!v.start||!v.end)e.push('Start and end time are required.');else if(v.start===v.end)e.push('Start and end time must differ.')}
+else{if(!v.shiftDate||!v.aDate)e.push('Shift date and actual date are required.');if(!v.sStart||!v.sEnd||!v.aStart||!v.aEnd)e.push('All start and end times are required.');if(!(v.reason||'').trim())e.push('Reason is mandatory for overtime.')}
+return e}
+function submit(i){const m=chat[i],el=document.querySelector(`.m[data-i="${i}"]`),v={};
+el.querySelectorAll('[name]').forEach(x=>v[x.name]=x.value);const er=validate(m.kind,v);
+if(!er.length&&m.kind==='Leave'){const d=leaveDays(v),left=ALLOW[v.type]-used(S.me,v.type);if(d>left+(m.edit?0:0))er.push(`Not enough ${v.type} leave left (${left} day).`)}
+if(er.length){el.querySelector('.err').innerHTML=er.map(esc).join('<br>');return}
+const u=me();
+if(m.edit){const f=S.filings.find(x=>x.id===m.edit);f.f=v;f.status='Pending';f.comment='';f.days=m.kind==='Leave'?leaveDays(v):0;log(f,'Corrected and resubmitted to '+U(f.mgr).name);chat.push({who:'bot',html:`Resubmitted <b>#${f.id}</b>. Routed to ${esc(U(f.mgr).name)}.`})}
+else{const f={id:S.n++,kind:m.kind,user:u.id,mgr:u.mgr,status:'Pending',f:v,days:m.kind==='Leave'?leaveDays(v):0,hours:0,comment:'',log:[]};log(f,'Submitted by '+u.name+', routed to '+(u.mgr?U(u.mgr).name:'n/a'));S.filings.push(f);
+chat.push({who:'bot',html:`Filed <b>#${f.id}</b> (${m.kind}). Waiting for approval by ${esc(U(u.mgr).name)}. Switch to <i>Approvals</i> as the manager to decide.`})}
+chat.splice(i,1);save();render()}
+function decide(id,ok){const f=S.filings.find(x=>x.id==id),c=$('#c'+id).value.trim();
+if(!ok&&!c){alert('Add a comment explaining the rejection.');return}
+f.status=ok?'Approved':'Rejected';f.comment=c;
+if(ok){if(f.kind==='OT')f.hours=otHours(f.f);log(f,'Approved by '+me().name+(f.kind==='Leave'?'. Posted to calendar, balance updated.':`. OT posted: ${f.hours} hrs.`))}
+else log(f,'Rejected by '+me().name+': '+c);save();render()}
+function cmd(t){t=t.trim();if(!t)return;chat.push({who:'me',html:esc(t)});const c=t.split(/\s+/)[0].toLowerCase();
+if(c==='/leave'||c==='/overtime'){if(me().role==='HR'){chat.push({who:'bot',html:'HR accounts view and extract data. Switch to an employee to file.'})}else if(!me().mgr){chat.push({who:'bot',html:'Managers file under their own manager; none is set up in this demo. Switch to an employee.'})}else chat.push({who:'bot',form:1,kind:c==='/leave'?'Leave':'OT',vals:{}})}
+else if(c==='/my'){const l=S.filings.filter(f=>f.user===S.me);chat.push({who:'bot',html:l.length?l.map(f=>`#${f.id} ${f.kind}: ${detail(f)} ${tag(f.status)}`).join('<br>'):'No filings yet.'})}
+else if(c==='/balance'){const u=me();chat.push({who:'bot',html:LTYPES.map(t=>`${t}: ${(ALLOW[t]-used(u.id,t)).toFixed(2)} of ${ALLOW[t]} days left`).join('<br>')+`<br>Approved OT: ${S.filings.filter(f=>f.user===u.id&&f.kind==='OT'&&f.status==='Approved').reduce((a,f)=>a+f.hours,0).toFixed(2)} hrs`})}
+else chat.push({who:'bot',html:'Commands: <b>/leave</b>, <b>/overtime</b>, <b>/my</b>, <b>/balance</b>. Use the tabs to approve, view the calendar or export data.'});
+render()}
+function vChat(){return `<div class="chat">${chat.map((m,i)=>m.form?formMsg(m,i):`<div class="m ${m.who}">${m.html}</div>`).join('')}</div>
+<div class="cmd"><input id="ci" placeholder="Type /leave or /overtime" autocomplete="off"><button data-act="send">Send</button></div><div class="hint">Try /leave, /overtime, /my, /balance, /help</div>`}
+function vMine(){const l=S.filings.filter(f=>f.user===S.me);if(!l.length)return '<p>Nothing filed yet. Use /leave or /overtime in the chat.</p>';
+return l.slice().reverse().map(f=>`<div class="card"><div class="row"><b>#${f.id} ${f.kind==='OT'?'Overtime':'Leave'}</b>${tag(f.status)}<small>Approver: ${esc(U(f.mgr).name)}</small></div>${detail(f)}<br><small>Reason: ${esc(f.f.reason||'-')}</small>${f.comment?`<br><small>Manager comment: ${esc(f.comment)}</small>`:''}
+${f.status==='Rejected'?`<div class="row" style="margin-top:10px"><button data-act="edit" data-id="${f.id}">Correct and resubmit</button><button class="g" data-act="cancel" data-id="${f.id}">Cancel filing</button></div>`:''}
+<details><summary><small>History</small></summary><small>${f.log.map(esc).join('<br>')}</small></details></div>`).join('')}
+function vApprove(){if(me().role!=='Manager')return '<p>Only managers approve filings. Switch to Ben Cruz to try it.</p>';
+const l=S.filings.filter(f=>f.mgr===S.me&&f.status==='Pending');if(!l.length)return '<p>No filings waiting for you.</p>';
+return l.map(f=>`<div class="card"><div class="row"><b>#${f.id} ${f.kind==='OT'?'Overtime':'Leave'}</b><small>from ${esc(U(f.user).name)}</small></div>${detail(f)}<br><small>Reason: ${esc(f.f.reason||'-')}</small>
+<div class="row" style="margin-top:10px"><input id="c${f.id}" placeholder="Comment (required if rejecting)" style="flex:1;min-width:200px"><button data-act="ok" data-id="${f.id}">Approve</button><button class="d" data-act="no" data-id="${f.id}">Reject</button></div></div>`).join('')}
+function vCal(){const y=cal.getFullYear(),m=cal.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
+const ev=visible().filter(f=>f.status==='Approved');let h=`<div class="row"><button class="g" data-act="prev">Prev</button><b>${cal.toLocaleString('en',{month:'long',year:'numeric'})}</b><button class="g" data-act="next">Next</button></div><div class="tw"><div class="cal">`+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="h">${d}</div>`).join('')+'<div style="border:0;background:none"></div>'.repeat(first);
+for(let d=1;d<=n;d++){const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+h+=`<div><b>${d}</b>`+ev.filter(f=>(f.kind==='Leave'?f.f.date:f.f.aDate)===ds).map(f=>`<div class="ev ${f.kind==='OT'?'ot':''}">${esc(U(f.user).name.split(' ')[0])}: ${f.kind==='Leave'?esc(f.f.type):f.hours+'h OT'}</div>`).join('')+'</div>'}
+return h+'</div></div>'}
+function rows(){return visible().filter(f=>(!flt.type||f.kind===flt.type)&&(!flt.status||f.status===flt.status))}
+function vRep(){const r=rows(),emp=USERS.filter(u=>u.role==='Employee'&&visible().some(f=>f.user===u.id)||u.id===S.me&&u.role==='Employee');
+return `<div class="row"><select id="ft" style="width:auto"><option value="">All types</option><option value="Leave" ${flt.type==='Leave'?'selected':''}>Leave</option><option value="OT" ${flt.type==='OT'?'selected':''}>Overtime</option></select>
+<select id="fs" style="width:auto"><option value="">All statuses</option>${['Pending','Approved','Rejected','Cancelled'].map(s=>`<option ${flt.status===s?'selected':''}>${s}</option>`).join('')}</select><button data-act="csv">Export CSV</button></div>
+<div class="tw"><table><tr><th>#</th><th>Employee</th><th>Type</th><th>Details</th><th>Status</th><th>Approver</th></tr>${r.map(f=>`<tr><td>${f.id}</td><td>${esc(U(f.user).name)}</td><td>${f.kind}</td><td>${detail(f)}</td><td>${tag(f.status)}</td><td>${esc(U(f.mgr).name)}</td></tr>`).join('')||'<tr><td colspan="6">No filings.</td></tr>'}</table></div>
+<h3>Balances and OT totals</h3><div class="tw"><table><tr><th>Employee</th>${LTYPES.map(t=>`<th>${t} left</th>`).join('')}<th>Approved OT hrs</th></tr>${emp.map(u=>`<tr><td>${esc(u.name)}</td>${LTYPES.map(t=>`<td>${(ALLOW[t]-used(u.id,t)).toFixed(2)}</td>`).join('')}<td>${S.filings.filter(f=>f.user===u.id&&f.kind==='OT'&&f.status==='Approved').reduce((a,f)=>a+f.hours,0).toFixed(2)}</td></tr>`).join('')}</table></div>`}
+function csv(){const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',H=['ID','Employee','Type','Status','Approver','LeaveType','Date','Start','End','ShiftDate','ShiftStart','ShiftEnd','ActualDate','ActualStart','ActualEnd','LeaveDays','OTHours','Reason','ManagerComment'];
+const L=rows().map(f=>[f.id,U(f.user).name,f.kind,f.status,U(f.mgr).name,f.f.type,f.f.date,f.f.start,f.f.end,f.f.shiftDate,f.f.sStart,f.f.sEnd,f.f.aDate,f.f.aStart,f.f.aEnd,f.days,f.hours,f.f.reason,f.comment].map(q).join(','));
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([[H.join(',')].concat(L).join('\n')],{type:'text/csv'}));a.download='leave-ot-filings.csv';a.click()}
+function render(){const u=me(),pend=S.filings.filter(f=>f.mgr===S.me&&f.status==='Pending').length;
+$('#who').innerHTML=USERS.map(x=>`<option value="${x.id}" ${x.id===S.me?'selected':''}>${x.name} (${x.role})</option>`).join('');
+const T=[['chat','Agent chat'],['mine','My filings'],['appr','Approvals'+(pend?` (${pend})`:'')],['cal','Calendar'],['rep','Reports']];
+$('#nav').innerHTML=T.map(t=>`<button data-tab="${t[0]}" class="${tab===t[0]?'on':''}">${t[1]}</button>`).join('');
+$('#main').innerHTML={chat:vChat,mine:vMine,appr:vApprove,cal:vCal,rep:vRep}[tab]();const ci=$('#ci');if(ci)ci.focus({preventScroll:true})}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const a=b.dataset.act,id=b.dataset.id;
+if(b.dataset.tab){tab=b.dataset.tab;return render()}
+if(a==='send'){const i=$('#ci');return cmd(i.value)}
+if(a==='submit')submit(+b.dataset.i);else if(a==='dismiss'){chat.splice(+b.dataset.i,1);render()}
+else if(a==='ok')decide(id,true);else if(a==='no')decide(id,false);
+else if(a==='cancel'){const f=S.filings.find(x=>x.id==id);f.status='Cancelled';log(f,'Cancelled by employee');save();render()}
+else if(a==='edit'){const f=S.filings.find(x=>x.id==id);chat.push({who:'bot',form:1,kind:f.kind,vals:f.f,edit:f.id});tab='chat';render()}
+else if(a==='prev'){cal.setMonth(cal.getMonth()-1);render()}else if(a==='next'){cal.setMonth(cal.getMonth()+1);render()}else if(a==='csv')csv()});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='ci'){cmd(e.target.value)}});
+document.addEventListener('change',e=>{if(e.target.id==='who'){S.me=e.target.value;save();render()}if(e.target.id==='ft'){flt.type=e.target.value;render()}if(e.target.id==='fs'){flt.status=e.target.value;render()}});
+render();
+</script></body></html>
