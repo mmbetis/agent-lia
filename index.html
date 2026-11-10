@@ -45,7 +45,8 @@ small{color:var(--mut)}@media(max-width:560px){.grid{grid-template-columns:1fr}}
 const USERS=[{id:'emp1',name:'Kwesi Amante',role:'Employee',mgr:'mgr1'},{id:'emp2',name:'Jan Derek Buquid',role:'Employee',mgr:'mgr2'},{id:'mgr1',name:'Marie-Cris Betis',role:'Manager',mgr:null},{id:'mgr2',name:'Hartell Torres',role:'Manager',mgr:null},{id:'hr1',name:'Margarita De la Torre',role:'HR',mgr:null}];
 const ALLOW={Vacation:15,Sick:10,Emergency:5},LTYPES=Object.keys(ALLOW),KEY='leave_ot_agent_v2';
 let S;try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}S=S||{filings:[],n:1,me:'emp1'};
-let chat=[{who:'bot',html:'Hi! I can file leave and overtime. Type <b>/leave</b> or <b>/overtime</b>. Other commands: <b>/my</b> (my filings), <b>/balance</b>, <b>/help</b>.'}];
+const welcome=()=>[{who:'bot',html:'Hi! I can file leave and overtime. Type <b>/leave</b> or <b>/overtime</b>. Other commands: <b>/my</b> (my filings), <b>/balance</b>, <b>/help</b>.'}];
+let chat=welcome();
 let tab='chat',cal=new Date(),flt={type:'',status:''};
 const $=s=>document.querySelector(s),U=id=>USERS.find(u=>u.id===id),me=()=>U(S.me);
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -136,6 +137,6 @@ else if(a==='cancel'){const f=S.filings.find(x=>x.id==id);f.status='Cancelled';l
 else if(a==='edit'){const f=S.filings.find(x=>x.id==id);chat.push({who:'bot',form:1,kind:f.kind,vals:f.f,edit:f.id});tab='chat';render()}
 else if(a==='prev'){cal.setMonth(cal.getMonth()-1);render()}else if(a==='next'){cal.setMonth(cal.getMonth()+1);render()}else if(a==='csv')csv()});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='ci'){cmd(e.target.value)}});
-document.addEventListener('change',e=>{if(e.target.id==='who'){S.me=e.target.value;save();render()}if(e.target.id==='ft'){flt.type=e.target.value;render()}if(e.target.id==='fs'){flt.status=e.target.value;render()}});
+document.addEventListener('change',e=>{if(e.target.id==='who'){S.me=e.target.value;chat=welcome();save();render()}if(e.target.id==='ft'){flt.type=e.target.value;render()}if(e.target.id==='fs'){flt.status=e.target.value;render()}});
 render();
 </script></body></html>
