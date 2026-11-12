@@ -1,3 +1,5 @@
+<img src="logo.jpeg" alt="LIA logo" width="180">
+
 # Leave Intelligent Assistant (LIA)
 
 Free, no-backend filing agent. One static page (`index.html`), no build step, no paid services.
